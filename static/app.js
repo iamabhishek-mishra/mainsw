@@ -476,11 +476,32 @@ async function renderDrawer() {
 
 function initMenu() {
   const menu = $("#categoryMenu");
-  menu.innerHTML = categories.map(c =>
-    `<a href="#/products?category=${c.slug}">${c.name}</a>`).join("");
+  menu.innerHTML = `<a href="#/products">All Health Products</a>` +
+    categories.map(c =>
+      `<a href="#/products?category=${c.slug}">${c.name}</a>`).join("");
   const foot = $("#footerCategories");
   if (foot) foot.innerHTML = categories.map(c =>
     `<li><a href="#/products?category=${c.slug}">${c.name}</a></li>`).join("");
+
+  const nav = document.querySelector(".nav");
+  const toggle = $("#navToggle");
+  const closeNav = () => {
+    nav.classList.remove("open");
+    toggle.setAttribute("aria-expanded", "false");
+  };
+  if (toggle) {
+    toggle.addEventListener("click", () => {
+      const open = nav.classList.toggle("open");
+      toggle.setAttribute("aria-expanded", String(open));
+    });
+    nav.addEventListener("click", e => { if (e.target.tagName === "A") closeNav(); });
+  }
+  $$(".nav .drop-trigger").forEach(t => t.addEventListener("click", e => {
+    if (window.innerWidth <= 900) {
+      e.preventDefault();
+      t.closest(".dropdown").classList.toggle("open");
+    }
+  }));
 }
 
 function initHero() {
@@ -529,20 +550,29 @@ function closeDrawer() {
 
 function renderAccount() {
   const box = $("#accountBox");
-  if (!box) return;
+  const mbox = $("#mobileAccount");
   const user = Auth.user();
-  box.innerHTML = user
-    ? `<a href="#/orders" class="account-link" title="My orders">Hi, ${user.name.split(" ")[0]}</a>
-       <a href="#" id="logoutLink" class="account-link" title="Logout">Logout</a>`
-    : `<a href="/login.html" class="account-link" title="Login / Register">Login / Register</a>`;
-  const lo = $("#logoutLink");
-  if (lo) lo.addEventListener("click", async e => {
+  if (box) {
+    box.innerHTML = user
+      ? `<a href="#/orders" class="account-link" title="My orders">Hi, ${user.name.split(" ")[0]}</a>
+         <a href="#" data-logout class="account-link" title="Logout">Logout</a>`
+      : `<a href="/login.html" class="account-link" title="Login / Register">Login / Register</a>`;
+  }
+  if (mbox) {
+    mbox.innerHTML = user
+      ? `<a href="#/orders" class="account-link">My Orders</a>
+         <a href="/admin.html" class="account-link">Admin Panel</a>
+         <a href="#" data-logout class="account-link">Logout</a>`
+      : `<a href="/login.html" class="account-link">Login / Register</a>
+         <a href="/admin.html" class="account-link">Admin Panel</a>`;
+  }
+  $$("[data-logout]").forEach(lo => lo.addEventListener("click", async e => {
     e.preventDefault();
     await Auth.logout();
     renderAccount();
     location.hash = "#/";
     navigate();
-  });
+  }));
 }
 
 async function renderOrderStatus(app, params) {
@@ -627,6 +657,8 @@ async function start() {
   renderAccount();
 
   window.addEventListener("hashchange", () => {
+    const nav = document.querySelector(".nav");
+    if (nav) nav.classList.remove("open");
     navigate();
   });
   navigate();

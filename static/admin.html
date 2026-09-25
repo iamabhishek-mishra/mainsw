@@ -62,7 +62,19 @@
   .login-card input { width: 100%; padding: 11px 14px; border: 2px solid #e5e7eb; border-radius: 9px; font-size: 14px; }
   .login-card input:focus { outline: none; border-color: #2f8f63; }
   .login-card #loginMsg { margin-bottom: 12px; }
-  @media (max-width: 800px) { .admin-layout { grid-template-columns: 1fr; } .form-grid { grid-template-columns: 1fr; } }
+  @media (max-width: 800px) {
+    .admin-layout { grid-template-columns: 1fr; gap: 16px; padding: 16px 0; }
+    .form-grid { grid-template-columns: 1fr; }
+    .side-menu { display: flex; overflow-x: auto; position: static; border-radius: 10px; -webkit-overflow-scrolling: touch; }
+    .side-menu a { flex: 0 0 auto; white-space: nowrap; border-bottom: none; border-right: 1px solid #f0f0f0; }
+    .panel { padding: 16px; }
+    .admin-header h1 { font-size: 16px; }
+    .admin-header .container { padding: 0 16px; }
+    .toolbar { width: 100%; }
+    .toolbar input, .toolbar select { flex: 1; min-width: 0; }
+    .modal { padding: 20px; }
+    .btn { min-height: 44px; }
+  }
 </style>
 </head>
 <body>
