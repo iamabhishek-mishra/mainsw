@@ -17,7 +17,7 @@ const api = {
   placeOrder: body =>
     fetch("/api/orders", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...Auth.headers() },
       body: JSON.stringify(body),
     }).then(r => r.json()),
 };
@@ -88,6 +88,12 @@ function navigate() {
   } else if (path === "/cart") {
     app.innerHTML = spinner();
     renderCart(app);
+  } else if (path === "/orders") {
+    app.innerHTML = spinner();
+    renderOrdersPage(app);
+  } else if (path === "/order") {
+    app.innerHTML = spinner();
+    renderOrderStatus(app, params);
   } else {
     app.innerHTML = "<div class='empty'><div class='big'>404</div><p>Page not found.</p></div>";
   }
@@ -333,7 +339,19 @@ async function renderCart(app) {
           <div class="field"><label>Email *</label><input name="email" type="email" required placeholder="you@email.com"></div>
           <div class="field"><label>Phone</label><input name="phone" placeholder="+91 ..."></div>
           <div class="field"><label>Delivery address</label><textarea name="address" rows="3" placeholder="House, street, city, PIN"></textarea></div>
-          <button type="submit" class="btn btn-primary btn-block btn-lg">Place Order</button>
+          <div class="field"><label>Payment method</label>
+            <div class="pay-options">
+              <label class="pay-option">
+                <input type="radio" name="payment_method" value="cod" checked>
+                <span><strong>Cash on Delivery</strong><small>Pay when your order arrives</small></span>
+              </label>
+              <label class="pay-option">
+                <input type="radio" name="payment_method" value="upi">
+                <span><strong>PhonePe (UPI)</strong><small>Pay instantly via UPI. No credentials configured? Runs in test mode.</small></span>
+              </label>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary btn-block btn-lg" id="placeBtn">Place Order</button>
         </form>
         <div id="orderMsg"></div>
       </div>
@@ -365,23 +383,54 @@ async function renderCart(app) {
 
   $("#checkoutForm").addEventListener("submit", async e => {
     e.preventDefault();
-    const fd = new FormData(e.target);
+    const form = e.target;
+    const fd = new FormData(form);
+    const btn = $("#placeBtn");
     const msg = $("#orderMsg");
+    const payment_method = fd.get("payment_method") || "cod";
+    btn.disabled = true;
+    btn.textContent = "Placing order...";
+    msg.innerHTML = "";
     const res = await api.placeOrder({
       name: fd.get("name"),
       email: fd.get("email"),
       phone: fd.get("phone"),
       address: fd.get("address"),
+      payment_method,
       items: Cart.get(),
     });
-    if (res.ok) {
-      Cart.save([]);
-      Cart.refreshBadge();
-      msg.innerHTML = `<div class="alert alert-success">Order placed successfully! Order ID: ${res.order_id}. Total: ${fmt(inr(res.total))}. We will contact you shortly.</div>`;
-      e.target.reset();
-    } else {
-      msg.innerHTML = `<div class="alert alert-error">${res.error || "Something went wrong."}</div>`;
+    if (!res.ok) {
+      msg.innerHTML = `<div class="alert alert-error">${escapeHtml(res.error || "Something went wrong.")}</div>`;
+      btn.disabled = false;
+      btn.textContent = "Place Order";
+      return;
     }
+    Cart.save([]);
+    Cart.refreshBadge();
+    if (payment_method === "upi") {
+      try {
+        const init = await (await fetch("/api/payments/init", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ order_id: res.order_id }),
+        })).json();
+        if (init.ok && init.redirect_url) {
+          msg.innerHTML = '<div class="alert alert-success">Order created. Redirecting to PhonePe &hellip;</div>';
+          setTimeout(() => (location.href = init.redirect_url), 800);
+          return;
+        }
+        location.hash = `#/order?id=${res.order_id}&status=failed`;
+        return;
+      } catch (err) {
+        location.hash = `#/order?id=${res.order_id}&status=failed`;
+        return;
+      }
+    }
+    form.reset();
+    msg.innerHTML = `<div class="alert alert-success">Order placed successfully! Order ID: ${res.order_id}. Total: ${fmt(inr(res.total))}. ${res.email ? escapeHtml(res.email) : "A confirmation email is on its way."}</div>`;
+    btn.disabled = false;
+    btn.textContent = "Place Order";
+    setTimeout(() => (location.hash = `#/order?id=${res.order_id}`), 1600);
   });
 }
 
@@ -478,12 +527,104 @@ function closeDrawer() {
   $("#cartDrawer").classList.remove("open");
 }
 
+function renderAccount() {
+  const box = $("#accountBox");
+  if (!box) return;
+  const user = Auth.user();
+  box.innerHTML = user
+    ? `<a href="#/orders" class="account-link" title="My orders">Hi, ${user.name.split(" ")[0]}</a>
+       <a href="#" id="logoutLink" class="account-link" title="Logout">Logout</a>`
+    : `<a href="/login.html" class="account-link" title="Login / Register">Login / Register</a>`;
+  const lo = $("#logoutLink");
+  if (lo) lo.addEventListener("click", async e => {
+    e.preventDefault();
+    await Auth.logout();
+    renderAccount();
+    location.hash = "#/";
+    navigate();
+  });
+}
+
+async function renderOrderStatus(app, params) {
+  const id = params.get("id");
+  try {
+    const o = await api.get("/api/orders/" + id);
+    const flow = params.get("status");
+    const paidSuccess = flow === "paid" || o.payment_status === "paid";
+    const items = JSON.parse(o.items).map(i => `${i.qty}x #${i.id}`).join(", ");
+    const icon = paidSuccess ? "&#9989;" : "&#8987;";
+    const heading = paidSuccess ? "Payment successful!" : flow === "failed" || o.payment_status === "failed" ? "Payment failed" : "Order placed";
+    app.innerHTML = `
+      <div class="empty" style="padding:60px 0">
+        <div class="big">${icon}</div>
+        <h3 style="margin-bottom:8px">${heading}</h3>
+        <p style="color:#6b7280;margin-bottom:4px">Order <strong>#${o.id}</strong> &middot; ${o.created_at}</p>
+        <p style="color:#6b7280;margin-bottom:22px">${paidSuccess ? "A confirmation email was sent to " + escapeHtml(o.email) : "We will share your order status by email."}</p>
+        <div class="cart-row" style="margin:0 auto 22px;max-width:520px;text-align:left">
+          <div class="info">
+            <h4>${items}</h4>
+            <div class="qty-note" style="color:#6b7280;font-size:13px;margin-top:4px">
+              Payment: ${o.payment_method.toUpperCase()} (${o.payment_status}) &middot;
+              Status: ${o.order_status} &middot; Txn: ${escapeHtml(o.transaction_id || "n/a")}
+            </div>
+          </div>
+          <strong class="dprice">${fmt(inr(o.total))}</strong>
+        </div>
+        <a href="#/products" class="btn btn-primary">Continue shopping</a>
+        ${Auth.user() ? `<a href="#/orders" class="btn btn-outline" style="margin-left:10px">My Orders</a>` : ""}
+      </div>`;
+  } catch (e) {
+    app.innerHTML = `<div class="empty"><div class="big">&#128544;</div><p>${e.message}</p></div>`;
+  }
+}
+
+async function renderOrdersPage(app) {
+  const user = Auth.user();
+  if (!user) {
+    app.innerHTML = `
+      <div class="empty" style="padding:80px 0">
+        <div class="big">&#128274;</div>
+        <h3 style="margin-bottom:16px">Please login to view your orders</h3>
+        <a href="/login.html" class="btn btn-primary">Login / Register</a>
+      </div>`;
+    return;
+  }
+  try {
+    const r = await fetch("/api/myorders", { headers: Auth.headers() });
+    const orders = await r.json();
+    app.innerHTML = `
+      <div class="breadcrumb"><a href="#/">Home</a> / My Orders</div>
+      <div class="section-head"><h2>My Orders</h2></div>
+      ${orders.length
+        ? `<div class="cart-layout" style="grid-template-columns:1fr">
+             ${orders.map(o => {
+               let items;
+               try { items = JSON.parse(o.items).map(i => `${i.qty}x #${i.id}`).join(", "); }
+               catch { items = o.items; }
+               return `<div class="cart-row">
+                 <div class="info">
+                   <h4>Order #${o.id} &middot; <span style="color:var(--muted);font-weight:600">${o.created_at}</span></h4>
+                   <div class="qty-note" style="color:#6b7280;font-size:13px;margin-top:4px">${escapeHtml(o.name)} &middot; ${escapeHtml(items)}</div>
+                 </div>
+                 <strong class="dprice">${fmt(inr(o.total))}</strong>
+               </div>`;
+             }).join("")}
+           </div>`
+        : `<div class="empty"><div class="big">&#128230;</div><p>You haven't placed any orders yet.</p>
+            <p style="margin-top:14px"><a href="#/products" class="btn btn-outline">Start shopping</a></p></div>`}`;
+  } catch (e) {
+    app.innerHTML = `<div class="empty"><div class="big">&#128544;</div><p>${e.message}</p></div>`;
+  }
+}
+
 async function start() {
   categories = await api.categories();
   initMenu();
   initHero();
   initSearch();
   Cart.refreshBadge();
+  await Auth.me();
+  renderAccount();
 
   window.addEventListener("hashchange", () => {
     navigate();

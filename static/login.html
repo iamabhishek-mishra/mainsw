@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login / Register - Sudha Wellness</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+<style>
+  body { min-height: 100vh; display: flex; flex-direction: column;
+         background: linear-gradient(135deg, #e9f4ee 0%, #ffffff 60%); }
+  .auth-wrap { flex: 1; display: flex; align-items: center; justify-content: center; padding: 48px 20px; }
+  .auth-card { background: #fff; border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow);
+               width: 100%; max-width: 430px; padding: 34px; }
+  .auth-card .logo-row { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; justify-content: center; }
+  .auth-card .logo-row .logo-mark { width: 40px; height: 40px; font-size: 20px; }
+  .auth-card h1 { text-align: center; font-size: 22px; margin-bottom: 4px; }
+  .auth-card .sub { text-align: center; color: var(--muted); font-size: 13.5px; margin-bottom: 22px; }
+  .tabs { display: grid; grid-template-columns: 1fr 1fr; background: var(--green-light); border-radius: 10px; padding: 4px; margin-bottom: 22px; }
+  .tabs button { padding: 10px; border: none; background: transparent; border-radius: 8px; font-weight: 700; font-size: 14px; color: var(--green-dark); }
+  .tabs button.active { background: #fff; color: var(--green); box-shadow: 0 1px 6px rgba(16,42,30,.14); }
+  #signupFields .name-field { margin-bottom: 0; }
+  .auth-actions { margin-top: 6px; }
+  .auth-actions button { width: 100%; }
+  .go-store { text-align: center; margin-top: 18px; font-size: 13.5px; color: var(--muted); }
+  .go-store a { color: var(--green); font-weight: 700; }
+  .alert { margin-top: 6px; }
+</style>
+</head>
+<body>
+
+<div class="auth-wrap">
+  <div class="auth-card">
+    <a href="/" class="logo-row">
+      <span class="logo-mark">S</span>
+      <span class="logo-text"><strong>Sudha <span>Wellness</span></strong></span>
+    </a>
+    <h1 id="authTitle">Welcome back</h1>
+    <p class="sub" id="authSub">Login to your Sudha Wellness account</p>
+
+    <div class="tabs">
+      <button type="button" id="tabLogin" class="active">Login</button>
+      <button type="button" id="tabSignup">Sign up</button>
+    </div>
+
+    <form id="authForm">
+      <div class="field" id="signupNameField" style="display:none">
+        <label>Full name *</label>
+        <input name="name" placeholder="Your name" autocomplete="name">
+      </div>
+      <div class="field">
+        <label>Email *</label>
+        <input name="email" type="email" required placeholder="you@email.com" autocomplete="email">
+      </div>
+      <div class="field">
+        <label>Password *</label>
+        <input name="password" type="password" required minlength="6" placeholder="At least 6 characters" autocomplete="current-password">
+      </div>
+      <div id="authMsg"></div>
+      <div class="auth-actions">
+        <button type="submit" class="btn btn-primary btn-lg" id="submitBtn">Login</button>
+      </div>
+    </form>
+
+    <div class="go-store"><a href="/">Browse the store &rarr;</a></div>
+  </div>
+</div>
+
+<footer class="footer" style="margin-top:auto">
+  <div class="container footer-bottom">
+    <div class="container">Copyright&copy; 2025 - Sudha Wellness. All rights reserved.&nbsp;&nbsp;|&nbsp;&nbsp;<a href="/admin.html">Admin Panel</a></div>
+  </div>
+</footer>
+
+<script src="/auth.js"></script>
+</body>
+</html>

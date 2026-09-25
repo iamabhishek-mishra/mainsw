@@ -2,14 +2,38 @@ const $ = (sel, ctx = document) => ctx.querySelector(sel);
 const $$ = (sel, ctx = document) => [...ctx.querySelectorAll(sel)];
 const fmt = n => "Rs. " + Number(n).toLocaleString("en-IN");
 const inr = n => Math.round(Number(n || 0));
-const AUTH = { "X-Admin": "sudha" };
+
+const AdminAuth = {
+  key: "sudha_admin_token",
+  token() { return localStorage.getItem(this.key) || ""; },
+  set(t) { localStorage.setItem(this.key, t); },
+  clear() { localStorage.removeItem(this.key); },
+};
+
+function showLogin() {
+  AdminAuth.clear();
+  $("#logout").classList.add("hidden");
+  $("#app").classList.add("hidden");
+  $("#loginScreen").classList.remove("hidden");
+}
+function hideLogin() {
+  $("#loginScreen").classList.add("hidden");
+  $("#app").classList.remove("hidden");
+  $("#logout").classList.remove("hidden");
+}
 
 let categories = [];
 let products = [];
 let editingId = null;
 
 async function request(url, options = {}) {
-  const r = await fetch(url, options);
+  const headers = { ...(options.headers || {}) };
+  if (AdminAuth.token()) headers["Authorization"] = "Bearer " + AdminAuth.token();
+  const r = await fetch(url, { ...options, headers });
+  if (r.status === 401) {
+    showLogin();
+    throw new Error("Session expired. Please login again.");
+  }
   const data = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(data.error || "Request failed");
   return data;
@@ -18,14 +42,14 @@ async function request(url, options = {}) {
 const api = {
   categories: () => request("/api/categories"),
   products: () => request("/api/products"),
-  orders: () => request("/api/orders", { headers: AUTH }),
+  orders: () => request("/api/orders"),
   create: body => request("/api/products", {
-    method: "POST", headers: { ...AUTH, "Content-Type": "application/json" }, body: JSON.stringify(body),
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
   }),
   update: (id, body) => request(`/api/products/${id}`, {
-    method: "PUT", headers: { ...AUTH, "Content-Type": "application/json" }, body: JSON.stringify(body),
+    method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
   }),
-  remove: id => request(`/api/products/${id}`, { method: "DELETE", headers: AUTH }),
+  remove: id => request(`/api/products/${id}`, { method: "DELETE" }),
 };
 
 /* ---------------- Views ---------------- */
@@ -35,6 +59,7 @@ function showView(name) {
   $$(".side-menu a").forEach(a => a.classList.toggle("active", a.id === "m-" + name));
   location.hash = name;
   if (name === "products") renderProducts();
+  if (name === "users") renderUsers();
   if (name === "orders") renderOrders();
   if (name === "dashboard") renderDashboard();
 }
@@ -159,27 +184,75 @@ async function removeProduct(id) {
   }
 }
 
+/* ---------------- Users ---------------- */
+async function renderUsers() {
+  let users = [];
+  try { users = await request("/api/users"); }
+  catch (e) {
+    $("#userRows").innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--red);padding:20px">${e.message}</td></tr>`;
+    return;
+  }
+  $("#userRows").innerHTML = users.length
+    ? users.map(u => `
+      <tr>
+        <td><strong>#${u.id}</strong></td>
+        <td>${u.name}</td>
+        <td>${u.email}</td>
+        <td style="font-size:13px;color:#6b7280">${u.created_at}</td>
+        <td><span class="badge-pill on">${u.order_count}</span></td>
+        <td><strong>${fmt(inr(u.order_total))}</strong></td>
+      </tr>`).join("")
+    : `<tr><td colspan="6" style="text-align:center;color:#6b7280;padding:26px">No registered users yet.</td></tr>`;
+}
+
 /* ---------------- Orders ---------------- */
 async function renderOrders() {
   let orders = [];
   try { orders = await api.orders(); } catch (e) {
-    $("#orderRows").innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--red);padding:20px">${e.message}</td></tr>`;
+    $("#orderRows").innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--red);padding:20px">${e.message}</td></tr>`;
     return;
   }
   $("#orderRows").innerHTML = orders.length
     ? orders.map(o => {
       const items = JSON.parse(o.items || "[]").map(i => `${i.qty}x #${i.id}`).join(", ");
+      const payClass = o.payment_status === "paid" || o.payment_status === "cod" ? "on" : "off";
+      const statusOptions = ["pending", "confirmed", "shipped", "delivered", "cancelled"]
+        .map(s => `<option value="${s}" ${o.order_status === s ? "selected" : ""}>${s}</option>`).join("");
       return `<tr>
         <td><strong>#${o.id}</strong></td>
         <td>${o.name}</td>
-        <td>${o.email}<br>${o.phone || ""}</td>
+        <td>${o.email}<br><span style="font-size:12.5px;color:#6b7280">${o.phone || ""}</span></td>
         <td style="font-size:13px;color:#374151">${o.address || "-"}</td>
         <td style="font-size:13px;color:#374151">${items}</td>
+        <td>
+          <strong>${(o.payment_method || "cod").toUpperCase()}</strong><br>
+          <span class="badge-pill ${payClass}">${o.payment_status}</span>
+        </td>
+        <td>
+          <select class="status-sel" data-id="${o.id}" style="padding:6px 8px;border:2px solid #e5e7eb;border-radius:8px;font-size:13px">
+            ${statusOptions}
+          </select>
+        </td>
         <td><strong>${fmt(inr(o.total))}</strong></td>
         <td style="font-size:13px;color:#6b7280">${o.created_at}</td>
       </tr>`;
     }).join("")
-    : `<tr><td colspan="7" style="text-align:center;color:#6b7280;padding:26px">No orders yet.</td></tr>`;
+    : `<tr><td colspan="9" style="text-align:center;color:#6b7280;padding:26px">No orders yet.</td></tr>`;
+
+  $$(".status-sel").forEach(sel => sel.addEventListener("change", async () => {
+    const id = sel.dataset.id;
+    try {
+      await request(`/api/orders/${id}/status`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: sel.value }),
+      });
+      alert(`Order #${id} status updated to "${sel.value}".`);
+    } catch (e) {
+      alert(e.message);
+      renderOrders();
+    }
+  }));
 }
 
 /* ---------------- Init ---------------- */
@@ -228,7 +301,7 @@ async function start() {
   fImage();
   $$(".side-menu a").forEach(a => a.addEventListener("click", () => showView(a.id.replace("m-", ""))));
   const initial = (location.hash || "#dashboard").slice(1);
-  showView(initial === "settings" ? "settings" : ["products", "orders"].includes(initial) ? initial : "dashboard");
+  showView(initial === "settings" ? "settings" : ["products", "orders", "users"].includes(initial) ? initial : "dashboard");
 }
 
 function fImage() {
@@ -237,4 +310,53 @@ function fImage() {
   img.addEventListener("input", () => { prev.src = img.value || "/img/placeholder.png"; });
 }
 
-document.addEventListener("DOMContentLoaded", start);
+document.addEventListener("DOMContentLoaded", () => {
+  bindAdminLogin();
+  $("#logout").addEventListener("click", async () => {
+    if (AdminAuth.token()) {
+      try {
+        await fetch("/api/admin/logout", { method: "POST", headers: { Authorization: "Bearer " + AdminAuth.token() } });
+      } catch (e) { /* ignore */ }
+    }
+    showLogin();
+    location.hash = "";
+  });
+  if (AdminAuth.token()) {
+    hideLogin();
+    $("#logout").classList.remove("hidden");
+    start();
+  } else {
+    showLogin();
+  }
+});
+
+function bindAdminLogin() {
+  const form = $("#adminLoginForm");
+  form.addEventListener("submit", async e => {
+    e.preventDefault();
+    const btn = $("#loginBtn");
+    const msg = $("#loginMsg");
+    msg.innerHTML = "";
+    btn.disabled = true;
+    btn.textContent = "Signing in...";
+    try {
+      const res = await request("/api/admin/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: form.elements["username"].value.trim(),
+          password: form.elements["password"].value,
+        }),
+      });
+      AdminAuth.set(res.token);
+      form.reset();
+      hideLogin();
+      start();
+    } catch (err) {
+      msg.innerHTML = `<div class="alert alert-error">${err.message}</div>`;
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Login";
+    }
+  });
+}

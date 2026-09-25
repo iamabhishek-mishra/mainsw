@@ -6,6 +6,9 @@ data.db
 *.sqlite
 *.sqlite3
 
+# Runtime logs (order/email records)
+logs/
+
 # Python
 __pycache__/
 *.pyc

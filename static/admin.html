@@ -54,10 +54,37 @@
   .stat .num { font-size: 30px; font-weight: 800; color: #1f6b47; margin-top: 6px; }
   .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 22px; }
   .hidden { display: none !important; }
+  .login-screen { position: fixed; inset: 0; background: #ecf1ee; display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 200; }
+  .login-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; padding: 34px; width: 100%; max-width: 360px; box-shadow: 0 18px 40px rgba(18,53,35,.12); }
+  .login-card h2 { font-size: 21px; color: #123523; margin-bottom: 4px; }
+  .login-card > p { color: #6b7280; font-size: 13.5px; margin-bottom: 20px; }
+  .login-card .field { margin-bottom: 14px; }
+  .login-card input { width: 100%; padding: 11px 14px; border: 2px solid #e5e7eb; border-radius: 9px; font-size: 14px; }
+  .login-card input:focus { outline: none; border-color: #2f8f63; }
+  .login-card #loginMsg { margin-bottom: 12px; }
   @media (max-width: 800px) { .admin-layout { grid-template-columns: 1fr; } .form-grid { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
+
+<div id="loginScreen" class="login-screen hidden">
+  <div class="login-card">
+    <h2>Admin Login</h2>
+    <p>Sign in to manage the Sudha Wellness store.</p>
+    <form id="adminLoginForm">
+      <div class="field">
+        <label>Username</label>
+        <input name="username" autocomplete="username" required>
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input name="password" type="password" autocomplete="current-password" required>
+      </div>
+      <div id="loginMsg"></div>
+      <button class="btn btn-primary btn-block" id="loginBtn">Login</button>
+    </form>
+  </div>
+</div>
 
 <div class="admin-header">
   <div class="container">
@@ -69,10 +96,11 @@
   </div>
 </div>
 
-<div class="container admin-layout">
+<div class="container admin-layout" id="app">
   <nav class="side-menu">
     <a href="#dashboard" id="m-dashboard" class="active">Dashboard</a>
     <a href="#products" id="m-products">Products</a>
+    <a href="#users" id="m-users">Users</a>
     <a href="#orders" id="m-orders">Orders</a>
     <a href="#settings" id="m-settings">API Docs</a>
   </nav>
@@ -112,13 +140,26 @@
       </div>
     </div>
 
+    <!-- Users -->
+    <div id="view-users" class="view hidden">
+      <div class="panel">
+        <div class="panel-head"><h2>Users</h2></div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Registered</th><th>Orders</th><th>Total Spent</th></tr></thead>
+            <tbody id="userRows"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
     <!-- Orders -->
     <div id="view-orders" class="view hidden">
       <div class="panel">
         <div class="panel-head"><h2>Orders</h2></div>
         <div style="overflow-x:auto">
           <table>
-            <thead><tr><th>ID</th><th>Customer</th><th>Contact</th><th>Address</th><th>Items</th><th>Total</th><th>Date</th></tr></thead>
+            <thead><tr><th>ID</th><th>Customer</th><th>Contact</th><th>Address</th><th>Items</th><th>Payment</th><th>Status</th><th>Total</th><th>Date</th></tr></thead>
             <tbody id="orderRows"></tbody>
           </table>
         </div>
@@ -133,14 +174,27 @@
         <table>
           <thead><tr><th>Method</th><th>Endpoint</th><th>Description</th></tr></thead>
           <tbody>
+            <tr><td>POST</td><td><code>/api/admin/login</code></td><td>Admin login {username, password} &rarr; token (Bearer)</td></tr>
+            <tr><td>POST</td><td><code>/api/admin/logout</code></td><td>Revoke admin token</td></tr>
             <tr><td>GET</td><td><code>/api/categories</code></td><td>List categories</td></tr>
             <tr><td>GET</td><td><code>/api/products</code></td><td>List products (?category, ?search, ?bestseller=1)</td></tr>
             <tr><td>GET</td><td><code>/api/products/:id</code></td><td>Get one product</td></tr>
-            <tr><td>POST</td><td><code>/api/products</code></td><td>Create product (header <code>X-Admin: sudha</code>)</td></tr>
+            <tr><td>POST</td><td><code>/api/products</code></td><td>Create product (header <code>X-Admin: &lt;ADMIN_KEY&gt;</code>)</td></tr>
             <tr><td>PUT</td><td><code>/api/products/:id</code></td><td>Update product</td></tr>
             <tr><td>DELETE</td><td><code>/api/products/:id</code></td><td>Delete product</td></tr>
-            <tr><td>POST</td><td><code>/api/orders</code></td><td>Place an order</td></tr>
-            <tr><td>GET</td><td><code>/api/orders</code></td><td>List orders (header <code>X-Admin: sudha</code>)</td></tr>
+            <tr><td>POST</td><td><code>/api/auth/register</code></td><td>Create account {name, email, password}</td></tr>
+            <tr><td>POST</td><td><code>/api/auth/login</code></td><td>Login {email, password} &rarr; token</td></tr>
+            <tr><td>POST</td><td><code>/api/auth/logout</code></td><td>Invalidate session</td></tr>
+            <tr><td>GET</td><td><code>/api/auth/me</code></td><td>Current user (Bearer token)</td></tr>
+            <tr><td>POST</td><td><code>/api/orders</code></td><td>Place order {payment_method: cod|upi}</td></tr>
+            <tr><td>GET</td><td><code>/api/orders</code></td><td>List orders (header <code>X-Admin</code>)</td></tr>
+            <tr><td>GET</td><td><code>/api/orders/:id</code></td><td>Public order details</td></tr>
+            <tr><td>PUT</td><td><code>/api/orders/:id/status</code></td><td>Update order status (admin)</td></tr>
+            <tr><td>GET</td><td><code>/api/myorders</code></td><td>Logged-in user's orders</td></tr>
+            <tr><td>GET</td><td><code>/api/users</code></td><td>All users + spend (admin)</td></tr>
+            <tr><td>POST</td><td><code>/api/payments/init</code></td><td>Start PhonePe payment for an order</td></tr>
+            <tr><td>GET</td><td><code>/api/payments/callback</code></td><td>PhonePe redirect/verify callback</td></tr>
+            <tr><td>GET</td><td><code>/api/payments/simulate</code></td><td>Local test payment (no merchant creds)</td></tr>
           </tbody>
         </table>
       </div>
