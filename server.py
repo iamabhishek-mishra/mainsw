@@ -242,13 +242,16 @@ PAYMENT_STATUSES = ["pending", "paid", "failed"]
 
 
 def smtp_config():
+    port = int(os.environ.get("SMTP_PORT", "587"))
+    secure = os.environ.get("SMTP_SECURE", "").strip().lower()
+    tls = "true" if secure == "true" else ("false" if secure == "false" else None)
     return {
         "host": os.environ.get("SMTP_HOST", "").strip(),
-        "port": int(os.environ.get("SMTP_PORT", "587")),
+        "port": port,
         "user": os.environ.get("SMTP_USER", "").strip(),
-        "password": os.environ.get("SMTP_PASSWORD", "").strip(),
-        "from": os.environ.get("SMTP_FROM", "Sudha Wellness <noreply@sudhawellness.com>"),
-        "tls": os.environ.get("SMTP_USE_TLS", "1") == "1",
+        "password": os.environ.get("SMTP_PASSWORD", os.environ.get("SMTP_PASS", "")).strip(),
+        "from": os.environ.get("SMTP_FROM", os.environ.get("EMAIL_FROM", "Sudha Wellness <noreply@sudhawellness.com>")),
+        "secure": tls if tls is not None else port == 465,
         "log_dir": os.environ.get("SMTP_LOG_DIR", "").strip(),
     }
 
@@ -331,8 +334,9 @@ def send_order_confirmation_email(order, conn):
         msg["Subject"] = subject
         msg["From"] = cfg["from"]
         msg["To"] = order["email"]
-        with smtplib.SMTP(cfg["host"], cfg["port"], timeout=15) as s:
-            if cfg["tls"]:
+        smtp_cls = smtplib.SMTP_SSL if cfg["secure"] else smtplib.SMTP
+        with smtp_cls(cfg["host"], cfg["port"], timeout=15) as s:
+            if not cfg["secure"] and cfg["host"]:
                 s.starttls()
             if cfg["user"]:
                 s.login(cfg["user"], cfg["password"])
@@ -358,10 +362,12 @@ def phonepe_create_payment(order, conn):
         return True, "/api/payments/simulate?order_id=%s" % order["id"], None
 
     amount_paisa = int(round(order["total"] * 100))
-    redirect_uri = cfg["redirect_uri"] or (
-        "http://127.0.0.1:%s/api/payments/callback"
-        % os.environ.get("PORT", "8000")
-    )
+    redirect_uri = cfg["redirect_uri"]
+    if not redirect_uri:
+        if cfg["env"] == "TEST":
+            redirect_uri = "http://127.0.0.1:%s/api/payments/callback" % os.environ.get("PORT", "8000")
+        else:
+            return False, None, "PHONEPE_REDIRECT_URI is not set; PhonePe requires a public HTTPS callback URL"
     payload = {
         "merchantId": cfg["merchant_id"],
         "merchantTransactionId": txn_id,
@@ -1049,12 +1055,13 @@ def main():
     port = int(os.environ.get("PORT", "8000"))
     if len(sys.argv) > 1:
         port = int(sys.argv[1])
-    server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
+    host = os.environ.get("HOST", "127.0.0.1").strip()
+    server = ThreadingHTTPServer((host, port), Handler)
     print("=" * 52)
     print("  Sudha Wellness - E-Commerce Store")
     print("  Database  : %s" % ("MySQL" if db.DB().driver == "mysql" else "SQLite"))
-    print("  Storefront : http://127.0.0.1:%d/" % port)
-    print("  Admin panel: http://127.0.0.1:%d/admin.html" % port)
+    print("  Storefront : http://%s:%d/" % ("127.0.0.1" if host == "0.0.0.0" else host, port))
+    print("  Admin panel: http://%s:%d/admin.html" % ("127.0.0.1" if host == "0.0.0.0" else host, port))
     print("  Press Ctrl+C to stop")
     print("=" * 52)
     try:
