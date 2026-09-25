@@ -1,0 +1,14 @@
+# Secrets - never commit
+.env
+
+# Database files
+data.db
+*.sqlite
+*.sqlite3
+
+# Python
+__pycache__/
+*.pyc
+
+# OS / editor
+.DS_Store

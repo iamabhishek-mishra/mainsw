@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sudha Wellness - Order Medicine & Health Products Online</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<!-- Top announcement bar -->
+<div class="topbar">
+  <div class="container topbar-inner">
+    <span>Online Consultancy Service Facility 24/7 &middot; Email: info@sudhawellness.com</span>
+    <div class="topbar-links">
+      <a href="https://sudhawellness.com/signin">Login / Register</a>
+      <a href="#/"><strong>Home</strong></a>
+    </div>
+  </div>
+</div>
+
+<!-- Header -->
+<header class="header">
+  <div class="container header-inner">
+    <a href="#/" class="logo">
+      <span class="logo-mark">S</span>
+      <span class="logo-text"><strong>Sudha</strong> Wellness<small>Homeopathic Care &amp; Products</small></span>
+    </a>
+    <div class="search-box">
+      <input id="searchInput" type="text" placeholder="Search products, e.g. Calendula Body Lotion">
+      <button id="searchBtn" aria-label="Search">&#128269;</button>
+    </div>
+    <div class="header-actions">
+      <a href="#/cart" class="cart-icon" title="Cart">
+        <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+        <span id="cartCount" class="cart-count">0</span>
+      </a>
+      <a href="/admin.html" class="admin-link" title="Admin Panel">Admin</a>
+    </div>
+  </div>
+</header>
+
+<!-- Nav -->
+<nav class="nav">
+  <div class="container nav-inner">
+    <a href="#/" data-route="home">Home</a>
+    <div class="dropdown">
+      <a href="#/products" class="drop-trigger">Health Products <span class="caret">&#9662;</span></a>
+      <div id="categoryMenu" class="dropdown-menu"></div>
+    </div>
+    <a href="#/products?bestseller=1">Bestsellers</a>
+    <a href="#/products?type=offer">Top Offers</a>
+    <a href="https://sudhawellness.com/cwdcategory" target="_blank">Consult With Doctor</a>
+    <a href="https://sudhawellness.com/healthplan_product?catid=94" target="_blank">Health Plan</a>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-slides">
+    <div class="hero-slide active"><img src="/img/banners/banner-consult.png" alt="Online consultation"></div>
+    <div class="hero-slide"><img src="/img/banners/banner-treatment.png" alt="Homeopathy treatment"></div>
+  </div>
+  <button class="hero-btn prev" id="heroPrev">&#10094;</button>
+  <button class="hero-btn next" id="heroNext">&#10095;</button>
+</section>
+
+<!-- Main app view -->
+<main id="app" class="container"></main>
+
+<!-- Cart drawer -->
+<div id="cartOverlay" class="overlay hidden"></div>
+<aside id="cartDrawer" class="drawer">
+  <div class="drawer-head">
+    <h3>Shopping Cart</h3>
+    <button id="closeCart">&#10005;</button>
+  </div>
+  <div id="drawerItems" class="drawer-items"></div>
+  <div class="drawer-foot">
+    <div class="drawer-total">
+      <span>Subtotal</span>
+      <strong id="drawerTotal">Rs. 0</strong>
+    </div>
+    <a href="#/cart" class="btn btn-primary btn-block">View Cart &amp; Checkout</a>
+  </div>
+</aside>
+
+<!-- Newsletter -->
+<section class="newsletter">
+  <div class="container newsletter-inner">
+    <div>
+      <h3>Join Our Mailing List</h3>
+      <p>Sign up for our exclusive email list and be the first to know about new products and special offers.</p>
+    </div>
+    <form id="newsletterForm" class="newsletter-form">
+      <input type="email" placeholder="Your email address" required>
+      <button type="submit" class="btn btn-light">Subscribe</button>
+    </form>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="footer">
+  <div class="container footer-grid">
+    <div>
+      <h4>Our Services</h4>
+      <ul>
+        <li><a href="https://sudhawellness.com/cwdcategory" target="_blank">Online Doctor Consultation</a></li>
+        <li><a href="#/products">Order Medicine/Health Product</a></li>
+        <li><a href="https://sudhawellness.com/healthplan_product?catid=94" target="_blank">Health Plan</a></li>
+        <li><a href="#/products">Diagnostic</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>Top Categories</h4>
+      <ul id="footerCategories"></ul>
+    </div>
+    <div>
+      <h4>Contact Us</h4>
+      <address>
+        Sudha Wellness Pvt. Ltd,<br>
+        Dhanbad, Jharkhand - 828106<br>
+        info@sudhawellness.com
+      </address>
+    </div>
+    <div>
+      <h4>About</h4>
+      <p>Trusted homoeopathic care and wellness products delivered to your doorstep. Consult doctors online and order quality health products from the comfort of your home.</p>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <div class="container">Copyright&copy; 2025 - Sudha Wellness. All rights reserved.&nbsp;&nbsp;|&nbsp;&nbsp;<a href="/admin.html">Admin Panel</a></div>
+  </div>
+</footer>
+
+<script src="/app.js"></script>
+</body>
+</html>
