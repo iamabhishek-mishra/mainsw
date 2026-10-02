@@ -13,5 +13,8 @@ logs/
 __pycache__/
 *.pyc
 
+# Node
+node_modules/
+
 # OS / editor
 .DS_Store

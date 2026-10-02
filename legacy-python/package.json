@@ -1,0 +1,19 @@
+{
+  "name": "sudha-wellness-store",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Sudha Wellness e-commerce store. Backend runs on Python 3 stdlib (http.server + SQLite/MySQL) via server.py.",
+  "engines": {
+    "node": ">=16"
+  },
+  "scripts": {
+    "start": "python3 server.py"
+  },
+  "keywords": [
+    "ecommerce",
+    "pharmacy",
+    "healthcare",
+    "python",
+    "sqlite"
+  ]
+}
