@@ -13,7 +13,7 @@ module.exports = {
   PUBLIC_DIR: path.join(BASE_DIR, 'public'),
   DB_FILE: env('DB_FILE', path.join(BASE_DIR, 'data.db')),
   port: Number(env('PORT', '3000')),
-  host: env('HOST', '127.0.0.1'),
+  host: env('HOST', '0.0.0.0'),
   admin: {
     username: env('ADMIN_USERNAME', 'admin'),
     password: env('ADMIN_PASSWORD', 'sudha@123'),

@@ -32,17 +32,25 @@ npm start              # = node server.js [PORT]
 
 Default admin login (change in `.env`): `admin` / the `ADMIN_PASSWORD` value.
 
-## Deploy on Hostinger (Node.js panel)
+## Deploy on Hostinger (Node.js web app)
 
-1. Push this repo to GitHub (already synced to `mainsw`).
-2. In hPanel, add a **Node.js** application (this is required - the old Python
-   version returned **403 Forbidden** on shared hosting because Python apps
-   can't run there).
-3. Node 18, 20 or 22 all work - `better-sqlite3` v11 ships prebuilt binaries
-   for these, so no compiler/Python is needed on the host.
-4. Connect the repo (or upload files), Hostinger runs `npm install` and `npm start`.
-5. Add environment variables from `.env` in hPanel (do not commit the real `.env`).
-6. Generate an SSL certificate and set the app to start on port 3000.
+> Important: use the **Node.js web app** builder, NOT the generic "Git" deploy.
+> The generic Git deploy only copies files into a folder and never starts the
+> Node process - that is what shows the **403 Forbidden** page.
+
+1. In hPanel go to **Websites → Add Website → Node.js web app → Import Git repository**.
+2. Connect GitHub, grant the Hostinger GitHub App access, pick the `mainsw` repo.
+3. Review the auto-detected settings and set:
+   - Framework preset: **Express**
+   - Node.js version: **22** (18 or 20 also work)
+   - Root directory: `/`
+   - Build command: (leave empty - there is no build step)
+   - Output directory: (leave empty - this is a server app)
+   - **Entry file: `server.js`**
+   - Branch: `main`
+4. Add the environment variables from your local `.env` (never commit the real one).
+5. Click **Deploy**. Hostinger runs `npm install`, starts `node server.js`, and
+   keeps the process running on every push.
 
 Using MySQL instead of SQLite: create the database in hPanel, then set
 `DB_DRIVER=mysql` plus the `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` values.

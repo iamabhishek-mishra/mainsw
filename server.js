@@ -50,7 +50,7 @@ async function main() {
   const host = config.host;
 
   const server = app.listen(port, host, () => {
-    const displayHost = host === '0.0.0.0' ? '127.0.0.1' : host;
+    const displayHost = host && host !== '0.0.0.0' ? host : '127.0.0.1';
     console.log('='.repeat(52));
     console.log('  Sudha Wellness - E-Commerce Store');
     console.log(`  Database  : ${db.driver === 'mysql' ? 'MySQL' : 'SQLite'}`);
