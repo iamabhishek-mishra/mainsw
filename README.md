@@ -38,7 +38,8 @@ Default admin login (change in `.env`): `admin` / the `ADMIN_PASSWORD` value.
 2. In hPanel, add a **Node.js** application (this is required - the old Python
    version returned **403 Forbidden** on shared hosting because Python apps
    can't run there).
-3. Node version: latest 20 LTS or 22 LTS (better-sqlite3 needs a supported ABI).
+3. Node 18, 20 or 22 all work - `better-sqlite3` v11 ships prebuilt binaries
+   for these, so no compiler/Python is needed on the host.
 4. Connect the repo (or upload files), Hostinger runs `npm install` and `npm start`.
 5. Add environment variables from `.env` in hPanel (do not commit the real `.env`).
 6. Generate an SSL certificate and set the app to start on port 3000.
